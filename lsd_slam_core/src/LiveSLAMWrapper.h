@@ -43,13 +43,13 @@ class LiveSLAMWrapperROS;
 class InputImageStream;
 class Output3DWrapper;
 
-
+// 核心slam接口
 struct LiveSLAMWrapper : public Notifiable
 {
 friend class LiveSLAMWrapperROS;
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
+	// 构造函数
 	LiveSLAMWrapper(InputImageStream* imageStream, Output3DWrapper* outputWrapper);
 
 	/** Destructor. */
@@ -57,6 +57,7 @@ public:
 	
 	
 	/** Runs the main processing loop. Will never return. */
+	// main 函数中算法处理循环
 	void Loop();
 	
 	/** Requests a reset from a different thread. */

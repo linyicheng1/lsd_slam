@@ -53,6 +53,8 @@ struct KFConstraintStruct;
 
 typedef Eigen::Matrix<float, 7, 7> Matrix7x7;
 
+// 核心slam实现函数
+// 主要函数为randomInit、trackFrame
 class SlamSystem
 {
 friend class IntegrationTest;

@@ -34,26 +34,32 @@
 namespace lsd_slam
 {
 
-
+/**
+ * @brief slam算法接口类构造函数
+ * @param imageStream 图像数据
+ * @param outputWrapper 输出数据
+ * 
+ * */
 LiveSLAMWrapper::LiveSLAMWrapper(InputImageStream* imageStream, Output3DWrapper* outputWrapper)
 {
+	// 获取参数
 	this->imageStream = imageStream;
 	this->outputWrapper = outputWrapper;
 	imageStream->getBuffer()->setReceiver(this);
-
+	// 图像参数
 	fx = imageStream->fx();
 	fy = imageStream->fy();
 	cx = imageStream->cx();
 	cy = imageStream->cy();
 	width = imageStream->width();
 	height = imageStream->height();
-
+	// 输出数据路径
 	outFileName = packagePath+"estimated_poses.txt";
 
-
+	// 初始化标志位
 	isInitialized = false;
 
-
+	// 相机内参矩阵
 	Sophus::Matrix3f K_sophus;
 	K_sophus << fx, 0.0, cx, 0.0, fy, cy, 0.0, 0.0, 1.0;
 
@@ -61,8 +67,9 @@ LiveSLAMWrapper::LiveSLAMWrapper(InputImageStream* imageStream, Output3DWrapper*
 
 
 	// make Odometry
+	// @TODO 里程计类
 	monoOdometry = new SlamSystem(width, height, K_sophus, doSlam);
-
+	// 输出作为可视化信息
 	monoOdometry->setVisualization(outputWrapper);
 
 	imageSeqNumber = 0;
@@ -81,16 +88,21 @@ LiveSLAMWrapper::~LiveSLAMWrapper()
 	}
 }
 
+/**
+ * @brief main函数中调用，循环执行算法
+ * 
+ * */
 void LiveSLAMWrapper::Loop()
 {
 	while (true) {
+		// 等待图片数据
 		boost::unique_lock<boost::recursive_mutex> waitLock(imageStream->getBuffer()->getMutex());
 		while (!fullResetRequested && !(imageStream->getBuffer()->size() > 0)) {
 			notifyCondition.wait(waitLock);
 		}
 		waitLock.unlock();
 		
-		
+		// 重置系统请求
 		if(fullResetRequested)
 		{
 			resetAll();
@@ -98,22 +110,30 @@ void LiveSLAMWrapper::Loop()
 			if (!(imageStream->getBuffer()->size() > 0))
 				continue;
 		}
-		
+		// 获取一帧数据
 		TimestampedMat image = imageStream->getBuffer()->first();
 		imageStream->getBuffer()->popFront();
 		
 		// process image
 		//Util::displayImage("MyVideo", image.data);
+		// 调用函数，传入图片信息和时间戳数据
 		newImageCallback(image.data, image.timestamp);
 	}
 }
 
-
+/**
+ * @brief main循环中调用输入图像数据
+ * @param img     图像数据
+ * @param imgTime 时间戳
+ * 
+ * */
 void LiveSLAMWrapper::newImageCallback(const cv::Mat& img, Timestamp imgTime)
 {
+	// 图片数量加一
 	++ imageSeqNumber;
 
 	// Convert image to grayscale, if necessary
+	// 如果是彩色图片则转换到灰度
 	cv::Mat grayImg;
 	if (img.channels() == 1)
 		grayImg = img;
@@ -122,18 +142,19 @@ void LiveSLAMWrapper::newImageCallback(const cv::Mat& img, Timestamp imgTime)
 	
 
 	// Assert that we work with 8 bit images
+	// 断言图片格式
 	assert(grayImg.elemSize() == 1);
 	assert(fx != 0 || fy != 0);
 
 
 	// need to initialize
 	if(!isInitialized)
-	{
+	{// 没有初始化
 		monoOdometry->randomInit(grayImg.data, imgTime.toSec(), 1);
 		isInitialized = true;
 	}
 	else if(isInitialized && monoOdometry != nullptr)
-	{
+	{// 正常执行函数
 		monoOdometry->trackFrame(grayImg.data,imageSeqNumber,false,imgTime.toSec());
 	}
 }

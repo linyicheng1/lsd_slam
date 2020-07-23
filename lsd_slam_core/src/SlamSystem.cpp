@@ -48,16 +48,16 @@
 
 using namespace lsd_slam;
 
-
+// 构造函数
 SlamSystem::SlamSystem(int w, int h, Eigen::Matrix3f K, bool enableSLAM)
 : SLAMEnabled(enableSLAM), relocalizer(w,h,K)
 {
 	if(w%16 != 0 || h%16!=0)
-	{
+	{// 图片大小必须是16的倍数？？
 		printf("image dimensions must be multiples of 16! Please crop your images / video accordingly.\n");
 		assert(false);
 	}
-
+	// 获得参数
 	this->width = w;
 	this->height = h;
 	this->K = K;
@@ -66,22 +66,22 @@ SlamSystem::SlamSystem(int w, int h, Eigen::Matrix3f K, bool enableSLAM)
 
 	currentKeyFrame =  nullptr;
 	trackingReferenceFrameSharedPT = nullptr;
+	// 关键字提取
 	keyFrameGraph = new KeyFrameGraph();
 	createNewKeyFrame = false;
-
+	// 深度地图类
 	map =  new DepthMap(w,h,K);
 	
 	newConstraintAdded = false;
 	haveUnmergedOptimizationOffset = false;
 
-
+	// tracking类
 	tracker = new SE3Tracker(w,h,K);
 	// Do not use more than 4 levels for odometry tracking
 	for (int level = 4; level < PYRAMID_LEVELS; ++level)
 		tracker->settings.maxItsPerLvl[level] = 0;
 	trackingReference = new TrackingReference();
 	mappingTrackingReference = new TrackingReference();
-
 
 	if(SLAMEnabled)
 	{
@@ -107,7 +107,8 @@ SlamSystem::SlamSystem(int w, int h, Eigen::Matrix3f K, bool enableSLAM)
 	doFinalOptimization = false;
 	depthMapScreenshotFlag = false;
 	lastTrackingClosenessScore = 0;
-
+	// 三个线程
+	// 地图
 	thread_mapping = boost::thread(&SlamSystem::mappingThreadLoop, this);
 
 	if(SLAMEnabled)

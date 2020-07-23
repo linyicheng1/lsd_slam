@@ -32,9 +32,12 @@
 
 #include <X11/Xlib.h>
 
+
+// 视觉里程计main函数入口
 using namespace lsd_slam;
 int main( int argc, char** argv )
 {
+	// 初始化线程
     XInitThreads();
 
 	ros::init(argc, argv, "LSD_SLAM");
@@ -60,7 +63,9 @@ int main( int argc, char** argv )
 	inputStream->run();
 
 	Output3DWrapper* outputWrapper = new ROSOutput3DWrapper(inputStream->width(), inputStream->height());
+	// slam核心类实现函数
 	LiveSLAMWrapper slamNode(inputStream, outputWrapper);
+	// 循环执行slam算法
 	slamNode.Loop();
 
 
